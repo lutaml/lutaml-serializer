@@ -17,12 +17,24 @@ module Lutaml
             errors << e
           end
         end
-        errors
+
+        errors.concat(validate_helper)
       end
 
       def validate!
         errors = validate
         raise Lutaml::Model::ValidationError.new(errors) if errors.any?
+      end
+
+      def validate_helper
+        errors = []
+
+        begin
+          self.class.attribute_tree.each { |attribute| attribute.validate_content!(self) }
+          errors
+        rescue Lutaml::Model::OutOfRangeChoiceError => e
+          errors << e
+        end
       end
     end
   end
