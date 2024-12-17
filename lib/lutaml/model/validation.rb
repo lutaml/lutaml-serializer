@@ -16,8 +16,9 @@ module Lutaml
         end
 
         begin
-          self.class.attribute_tree.each { |attribute| attribute.validate_count!(self) }
-        rescue Lutaml::Model::InvalidChoiceError => e
+          self.class.attribute_tree.each { |attribute| attribute.validate_content!(self) }
+        rescue Lutaml::Model::InvalidChoiceError,
+               Lutaml::Model::InvalidSequenceError => e
           errors << e
         end
 
