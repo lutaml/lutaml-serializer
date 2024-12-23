@@ -15,6 +15,7 @@ require_relative "error"
 require_relative "group"
 require_relative "choice"
 require_relative "sequence"
+require_relative "all"
 
 module Lutaml
   module Model
@@ -103,6 +104,12 @@ module Lutaml
           process_nested_structure(group, &block)
 
           raise Lutaml::Model::InvalidGroupError.new("Group can't be empty") if group.attribute_tree.empty?
+        end
+
+        def all(&block)
+          all = All.new(self)
+          process_nested_structure(all, &block)
+          # raise Lutaml::Model::InvalidGroupError.new("Group can't be empty") if group.attribute_tree.empty?
         end
 
         def choice(&block)

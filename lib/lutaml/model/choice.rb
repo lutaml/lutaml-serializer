@@ -18,6 +18,10 @@ module Lutaml
         process_nested_structure(Group.new(@model), &block)
       end
 
+      def all
+        raise Lutaml::Model::InvalidChoiceError.new("Can't define all in choice")
+      end
+
       def choice(&block)
         process_nested_structure(Choice.new(@model), &block)
       end

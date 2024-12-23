@@ -82,6 +82,16 @@ module ChoiceAndGroup
 
     attribute :foo, :string
   end
+
+  class PersonGroup < Lutaml::Model::Serializable
+    # group do
+      all do
+        attribute :title, :string
+        attribute :header, :string
+        attribute :body, :string
+      end
+    # end
+  end
 end
 
 RSpec.describe "ChoiceGroup" do
@@ -217,6 +227,39 @@ RSpec.describe "ChoiceGroup" do
   end
 
   context "with group option" do
+    let(:mapper) { ChoiceAndGroup::PersonGroup }
+
+    it "returns an empty array for a valid instance" do
+      valid_instance = mapper.new(
+        title: "lutaml",
+        header: "shale",
+        body: "serialization",
+      )
+      binding.irb
+      expect(valid_instance.validate).to be_empty
+    end
+
+    it "returns nil for a valid instance, if all elements appear" do
+      valid_instance = mapper.new(
+        title: "pluarimath",
+        body: "unitsdb",
+        header: "conversion",
+      )
+
+      expect(valid_instance.validate!).to be_nil
+    end
+
+    it "raises error, if not all elements appear" do
+      valid_instance = mapper.new(
+        title: "niso",
+        body: "jats",
+      )
+
+      expect { valid_instance.validate! }.to raise_error(Lutaml::Model::ValidationError) do |error|
+        expect(error.error_messages.join("\n")).to include("All attributes must appear in any order")
+      end
+    end
+
     it "raises error when attribute is defined directly in it" do
       expect do
         Class.new(Lutaml::Model::Serializable) do

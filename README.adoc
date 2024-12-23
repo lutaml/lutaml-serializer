@@ -547,7 +547,7 @@ end
 
 It groups a set of elements, allowing them to be collectively incorporated into complex type definitions as a single unit.
 
-Group supports (choice | sequence)
+Group supports (choice | sequence | all)
 
 If the attributes defined directly in group or
 the nested group is defined or the
@@ -582,7 +582,7 @@ group do
 end
 ====
 
-.Using the `group` option to define a collection of attributes
+.Using the `group` to define a collection of attributes
 [example]
 ====
 [source,ruby]
@@ -593,6 +593,20 @@ class Studio < Lutaml::Model::Serializable
       attribute :fb, :string
     end
   end
+
+  group do
+    sequence do
+      attribute :fname, :string
+      attribute :lname, :string
+    end
+  end
+
+  group do
+    all do
+      attribute :fname, :string
+      attribute :lname, :string
+    end
+  end
 end
 ----
 ====
@@ -600,11 +614,11 @@ end
 
 === Attributes within Choice
 
-The Choice option ensures that exactly one element from the specified group is included.
+The Choice ensures that exactly one element from the specified group is included.
 
 Choice supports (element | group | choice)*
 
-.Using the `choice` option to define a set of attributes where exactly one can be used.
+.Using the `choice` to define a set of attributes where exactly one can be used.
 [example]
 ====
 [source,ruby]
@@ -627,7 +641,7 @@ end
 
 === Attributes within Sequence
 
-The sequence option ensures that the given elements must be in specified order.
+The sequence ensures that the given elements must be in specified order.
 
 Sequence supports (element | group | choice | sequence)*
 
@@ -648,6 +662,29 @@ class Studio < Lutaml::Model::Serializable
     sequence do
       attribute :completeName, :string
       attribute :nick_name, :string
+    end
+  end
+end
+----
+====
+
+
+=== Attributes within All
+
+The all ensures that all elements must appear in any order.
+
+All supports (element)*. It can only appear within a group and only contain elements.
+
+.Using the `all` to define a set of elements to appear in any order.
+[example]
+====
+[source,ruby]
+----
+class Studio < Lutaml::Model::Serializable
+  group do
+    all do
+      attribute :prefix, :string
+      attribute :forename, :string
     end
   end
 end
@@ -2667,6 +2704,7 @@ Lutaml::Model supports the following validation methods:
 * `group` :: Validates the attributes incorporated as a group
 * `choice` :: Validates that only one attribute specified
 * `sequence` :: Validates that elements appear in specified order
+* `all` :: Validates that all elements must appear in any order
 
 [example]
 ====
@@ -2696,23 +2734,31 @@ class Klin < Lutaml::Model::Serializable
     attribute :age, :integer
   end
 
+  group do
+    all do
+      attribute :fname, :string
+      attribute :lname, :string
+    end
+  end
+
   xml do
     map_element 'name', to: :name
     map_attribute 'degree_settings', to: :degree_settings
   end
 end
 
-klin = Klin.new(name: "Klin", degree_settings: [100, 200, 300], description: "one", prefix: "Ben", id: 1, age: 24)
+klin = Klin.new(name: "Klin", degree_settings: [100, 200, 300], description: "one", prefix: "Ben", id: 1, age: 24, lname: "Azam", fname: "Babar")
 klin.validate
 # => []
 
-klin = Klin.new(name: "Klin", degree_settings: [], description: "four", prefix: "Ben", nick_name: "Smith", age: 24, id: 1)
+klin = Klin.new(name: "Klin", degree_settings: [], description: "four", prefix: "Ben", nick_name: "Smith", age: 24, id: 1, fname: "Saim")
 klin.validate
 # => [
 #      #<Lutaml::Model::CollectionSizeError: degree_settings must have at least 1 element>,
 #      #<Lutaml::Model::ValueError: description must be one of [one, two, three]>,
 #      #<Lutaml::Model::InvalidChoiceError: Exactly one attribute must be specified in a choice>
-#      #<Lutaml::Model::InvalidSequenceError: Attributes must be specified in defined order in the sequence>
+#      #<Lutaml::Model::InvalidSequenceError: Elements must be present in the specified order>
+#      #<Lutaml::Model::InvalidAllError: All attributes must appear in any order>
 #    ]
 
 e = klin.validate!
@@ -2721,13 +2767,15 @@ e = klin.validate!
 #      description must be one of [one, two, three],
 #      Exactly one attribute must be specified in a choice
 #      Elements must be present in the specified order
+#      All attributes must appear in any order
 #    ]
 e.errors
 # => [
 #     #<Lutaml::Model::CollectionSizeError: degree_settings must have at least 1 element>,
 #     #<Lutaml::Model::ValueError: description must be one of [one, two, three]>,
 #     #<Lutaml::Model::InvalidChoiceError: Exactly one attribute must be specified in a choice>,
-#     #<Lutaml::Model::InvalidSequenceError: Elements must be present in the specified order>
+#     #<Lutaml::Model::InvalidSequenceError: Elements must be present in the specified order>,
+#     #<Lutaml::Model::InvalidAllError: All attributes must appear in any order>
 #   ]
 ----
 ====

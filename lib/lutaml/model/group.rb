@@ -17,6 +17,10 @@ module Lutaml
         raise Lutaml::Model::InvalidGroupError.new("Nested group definitions are not allowed")
       end
 
+      def all(&block)
+        process_nested_structure(All.new(@model), &block)
+      end
+
       def choice(&block)
         if @attribute_tree.size >= 1
           raise Lutaml::Model::InvalidGroupError.new("Can't define multiple choices in group")

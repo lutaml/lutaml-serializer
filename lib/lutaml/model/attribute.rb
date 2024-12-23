@@ -12,6 +12,7 @@ module Lutaml
         pattern
         parent_choice
         parent_sequence
+        parent_all
       ].freeze
 
       def initialize(name, type, options = {})
