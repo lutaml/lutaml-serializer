@@ -76,27 +76,7 @@ module Lutaml
           result = Lutaml::Model::MappingHash.new
           result.node = element
           result.item_order = element.order
-
-          element.children.each_with_object(result) do |child, hash|
-            if klass&.<= Serialize
-              attr = klass.attribute_for_child(child.name,
-                                               format)
-            end
-
-            value = if child.text?
-                      child.text
-                    else
-                      parse_element(child, attr&.type || klass, format)
-                    end
-
-            hash[child.namespaced_name] = if hash[child.namespaced_name]
-                                            [hash[child.namespaced_name], value].flatten
-                                          else
-                                            value
-                                          end
-          end
-
-          result.merge(attributes_hash(element))
+          process_element(result, element, klass, format)
         end
 
         def attributes_hash(element)
@@ -379,6 +359,43 @@ module Lutaml
 
         def self.type
           Utils.snake_case(self).split("/").last.split("_").first
+        end
+
+        private
+
+        def process_element(result, element, klass, format)
+          element.children.each_with_object(result) do |child, hash|
+            if klass&.<= Serialize
+              attr = klass.attribute_for_child(name_of(child),
+                                               format)
+            end
+
+            value = if child.respond_to?(:text?) && child.text?
+                      text_of(child)
+                    else
+                      parse_element(child, attr&.type || klass, format)
+                    end
+
+            hash[namespaced_name_of(child)] = if hash[namespaced_name_of(child)]
+                                                [hash[namespaced_name_of(child)], value].flatten
+                                              else
+                                                value
+                                              end
+          end
+
+          result.merge(attributes_hash(element))
+        end
+
+        def name_of(element)
+          element.name
+        end
+
+        def text_of(element)
+          element.text
+        end
+
+        def namespaced_name_of(element)
+          element.namespaced_name
         end
       end
     end

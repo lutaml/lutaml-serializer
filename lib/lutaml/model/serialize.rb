@@ -468,7 +468,7 @@ module Lutaml
             namespaced_names = rule.namespaced_names(options[:default_namespace])
 
             value = if rule.raw_mapping?
-                      doc.node.inner_xml
+                      inner_xml_of(doc.node)
                     elsif rule.content_mapping?
                       doc[rule.content_key]
                     elsif key = (namespaced_names & doc.keys).first
@@ -581,6 +581,17 @@ module Lutaml
             end
           else
             value
+          end
+        end
+
+        private
+
+        def inner_xml_of(node)
+          case node
+          when XmlAdapter::XmlElement
+            node.inner_xml
+          else
+            node.children.map(&:to_xml).join
           end
         end
       end
