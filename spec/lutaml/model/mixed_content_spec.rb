@@ -712,10 +712,10 @@ RSpec.describe "MixedContent" do
           it "deserializes SHIFT encoded content correctly with explicit encoding option" do
             parsed = MixedContentSpec::Shift.from_xml(fixture, encoding: "Shift_JIS")
 
-            expected_content = if adapter_class == Lutaml::Model::XmlAdapter::OxAdapter
-                                 "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
-                               else
+            expected_content = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                                  "手書き英字１"
+                               else
+                                 "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
                                end
 
             expect(parsed.field).to include(expected_content)
@@ -727,7 +727,7 @@ RSpec.describe "MixedContent" do
             expected_content = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                                  "�菑���p���P"
                                elsif adapter_class == Lutaml::Model::XmlAdapter::OgaAdapter
-                                 "手書き英字１"
+                                 "手書き英字１".encode("Shift_JIS")
                                else
                                  "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("UTF-8")
                                end
@@ -748,10 +748,10 @@ RSpec.describe "MixedContent" do
             parsed = MixedContentSpec::Shift.from_xml(fixture, encoding: "Shift_JIS")
             serialized = parsed.to_xml(encoding: "UTF-8")
 
-            expected_xml = if adapter_class == Lutaml::Model::XmlAdapter::OxAdapter
-                             "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
-                           else
+            expected_xml = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                              "手書き英字１"
+                           else
+                             "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
                            end
 
             expect(parsed.field).to include(expected_xml)
@@ -765,10 +765,10 @@ RSpec.describe "MixedContent" do
             parsed = MixedContentSpec::Shift.from_xml(fixture, encoding: "Shift_JIS")
             serialized = parsed.to_xml(encoding: "Shift_JIS")
 
-            expected_xml = if adapter_class == Lutaml::Model::XmlAdapter::OxAdapter
-                             "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
-                           else
+            expected_xml = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                              "手書き英字１"
+                           else
+                             "\x8E\xE8\x8F\x91\x82\xAB\x89p\x8E\x9A\x82P".force_encoding("Shift_JIS")
                            end
 
             expect(parsed.field).to include(expected_xml)
@@ -829,10 +829,10 @@ RSpec.describe "MixedContent" do
           it "deserializes latin encoded content correctly" do
             parsed = MixedContentSpec::Latin.from_xml(fixture, encoding: "ISO-8859-1")
 
-            expected_content = if adapter_class == Lutaml::Model::XmlAdapter::OxAdapter
-                                 ["M\xFCller".force_encoding("ISO-8859-1"), "Jos\xE9".force_encoding("ISO-8859-1")]
-                               else
+            expected_content = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                                  ["Müller", "José"]
+                               else
+                                 ["M\xFCller".force_encoding("ISO-8859-1"), "Jos\xE9".force_encoding("ISO-8859-1")]
                                end
 
             expect(parsed.from).to eq(expected_content[0])
@@ -845,7 +845,7 @@ RSpec.describe "MixedContent" do
             expected_content = if adapter_class == Lutaml::Model::XmlAdapter::NokogiriAdapter
                                  ["M�ller", "Jos�"]
                                elsif adapter_class == Lutaml::Model::XmlAdapter::OgaAdapter
-                                 ["Müller", "José"]
+                                 ["M\xFCller".force_encoding("ISO-8859-1"), "Jos\xE9".force_encoding("ISO-8859-1")]
                                else
                                  ["M\xFCller", "Jos\xE9"]
                                end

@@ -1,4 +1,5 @@
 require "oga"
+require "moxml/adapter/oga"
 require_relative "xml_document"
 require_relative "oga/document"
 require_relative "oga/element"
@@ -10,15 +11,14 @@ module Lutaml
       class OgaAdapter < XmlDocument
         def self.parse(xml, options = {})
           encoding = options[:encoding] || xml.encoding.to_s
-          xml = xml.encode("UTF-16").encode("UTF-8") if encoding && encoding != "UTF-8"
-          parsed = ::Oga.parse_xml(xml)
-          @root = Oga::Element.new(parsed.children.first)
-          new(@root, encoding)
+          parsed = Moxml::Adapter::Oga.parse(xml)
+          new(parsed.root, encoding)
         end
 
         def to_xml(options = {})
-          builder_options = {}
+          return root.to_xml if root.is_a?(Moxml::Element)
 
+          builder_options = {}
           builder_options[:encoding] = if options.key?(:encoding)
                                          options[:encoding] || "UTF-8"
                                        elsif options.key?(:parse_encoding)
@@ -27,11 +27,7 @@ module Lutaml
                                          "UTF-8"
                                        end
           builder = Builder::Oga.build(options) do |xml|
-            if @root.is_a?(Oga::Element)
-              @root.build_xml(xml)
-            else
-              build_element(xml, @root, options)
-            end
+            build_element(xml, @root, options)
           end
           xml_data = builder.to_xml.encode!(builder_options[:encoding])
           options[:declaration] ? declaration(options) + xml_data : xml_data
@@ -39,7 +35,81 @@ module Lutaml
           invalid_encoding!(builder_options[:encoding])
         end
 
+        def parse_element(element, klass = nil, format = nil)
+          result = Lutaml::Model::MappingHash.new
+          result.node = element
+          result.item_order = order_of(element)
+          process_element(result, element, klass, format)
+        end
+
+        def attributes_hash(element)
+          result = Lutaml::Model::MappingHash.new
+
+          element.attributes.each do |attr|
+            if attr.name == "schemaLocation"
+              result["__schema_location"] = {
+                namespace: attr.namespace,
+                prefix: attr.namespace.prefix,
+                schema_location: attr.value,
+              }
+            else
+              result[namespaced_attr_name(attr)] = attr.value
+            end
+          end
+
+          result
+        end
+
         private
+
+        def name_of(element)
+          case element
+          when Moxml::Text
+            "text"
+          when Moxml::Cdata
+            "cdata"
+          else
+            element.name
+          end
+        end
+
+        def text_of(element)
+          element.content
+        end
+
+        def namespaced_attr_name(attribute)
+          attr_ns = attribute.native.namespace
+          if attr_ns.is_a?(::Oga::XML::Namespace)
+            prefix = attribute.name == "lang" ? attr_ns.name : attr_ns.uri
+            if prefix
+              "#{prefix}:#{attribute.name}"
+            else
+              attribute.name
+            end
+          else
+            attribute.name
+          end
+        end
+
+        def namespaced_name_of(element)
+          case element
+          when Moxml::Text
+            "text"
+          else
+            element_ns = element.native.namespace
+            if element_ns
+              "#{element_ns.uri}:#{element.name}"
+            else
+              element.name
+            end
+          end
+        end
+
+        def order_of(element)
+          element.children.each_with_object([]) do |child, arr|
+            arr << name_of(child)
+          end
+        end
 
         def build_ordered_element(builder, element, options = {})
           mapper_class = options[:mapper_class] || element.class
