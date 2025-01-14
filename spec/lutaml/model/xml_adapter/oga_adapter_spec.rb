@@ -52,11 +52,13 @@ RSpec.describe Lutaml::Model::XmlAdapter::OgaAdapter do
       expect(root.name).to eq("root")
       expect(root.namespace.uri).to eq("http://example.com/default")
 
-      child = root.children[1]
-      expect(child.expanded_name).to eq("prefix:child")
+      child = root.children.first
+      expect(child.native.expanded_name).to eq("prefix:child")
       expect(child.namespace.uri).to eq("http://example.com/prefixed")
-      expect(child.get("attr")).to eq("value")
-      expect(child.get("prefix:attr")).to eq("prefixed_value")
+      unprefixed_attr = child.attributes.find { |attr| attr.name == "attr" }
+      expect(unprefixed_attr.value).to eq("value")
+      prefixed_attr = child.attributes.find { |attr| attr.native.expanded_name == "prefix:attr" }
+      expect(prefixed_attr.value).to eq("prefixed_value")
     end
   end
 end
