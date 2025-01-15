@@ -67,6 +67,10 @@ module Lutaml
         !!@mixed_content
       end
 
+      def validate_content!(_element_order, defined_order)
+        defined_order << name.to_s
+      end
+
       def prefixed_name
         rule_name = multiple_mappings? ? name.first : name
         if prefix
@@ -106,6 +110,7 @@ module Lutaml
           namespace: namespace.dup,
           prefix: prefix.dup,
           mixed_content: mixed_content,
+          cdata: cdata,
           namespace_set: namespace_set?,
           attribute: attribute,
           prefix_set: prefix_set?,

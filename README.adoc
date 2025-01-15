@@ -548,6 +548,129 @@ end
 ====
 
 
+=== Attributes within Group
+
+It groups a set of element declarations, allowing them to be reused together.
+Note: It is xml only. Overwriting of elements and attributes depends on the hierarchy of importing the model.
+
+Group is used in Lutaml by defining a `no-root` class and `import_model`, `import_model_attributes` and `import_model_mappings` in another class.
+
+.Using the group option to define a collection of attributes
+[example]
+====
+[source,ruby]
+----
+class GroupOfItems < Lutaml::Model::Serializable
+  attribute :name, :string
+  attribute :type, :string
+  attribute :code, :string
+
+  xml do
+    no_root
+    sequence do
+      map_element "name", to: :name
+      map_element "type", to: :type
+    end
+    map_attribute "code", to: :code
+  end
+end
+
+class ComplexType < Lutaml::Model::Serializable
+  attribute :tag, AttributeValueType
+  attribute :content, :string
+  attribute :group, :string
+  import_model_attributes GroupOfItems
+
+  xml do
+    root "GroupOfItems"
+    map_attribute "tag", to: :tag
+    map_content to: :content
+    map_element :group, to: :group
+    import_model_mappings GroupOfItems
+  end
+end
+
+class SimpleType < Lutaml::Model::Serializable
+  import_model GroupOfItems
+end
+
+class GenericType < Lutaml::Model::Serializable
+  import_model_mappings GroupOfItems
+end
+----
+====
+
+
+=== Attributes within Choice
+
+The Choice option ensures that elements from the specified range are included.
+
+Choice supports (element | choice)*
+
+.Using the `choice` option to define a set of attributes with a range.
+[example]
+====
+[source,ruby]
+----
+class Studio < Lutaml::Model::Serializable
+  choice(min: 1, max: 3) do
+    choice(min: 1, max: 2) do
+      attribute :prefix, :string
+      attribute :forename, :string
+    end
+
+    attribute :completeName, :string
+  end
+end
+----
+====
+
+
+=== Attributes within Sequence
+
+The sequence option enforces that the defined components must appear in a specified order.
+
+Sequence supports (element | sequence)*
+
+.Using the `sequence` element to define a set of elements in desired order.
+[example]
+====
+[source,ruby]
+----
+class Kiln < Lutaml::Model::Serializable
+  attribute :id, :string
+  attribute :name, :string
+  attribute :type, :string
+  attribute :color, :string
+
+  xml do
+    sequence do
+      map_element :id, to: :id
+      map_element :name, to: :name
+      map_element :type, to: :type
+      map_element :color, to: :color
+    end
+  end
+end
+
+class KilnCollection < Lutaml::Model::Serializable
+  attribute :kiln, Kiln, collection: 1..2
+
+  xml do
+    root "collection"
+    map_element "kiln", to: :kiln
+  end
+end
+----
+
+[source,ruby]
+----
+> parsed = Kiln.from_xml("<Kiln> <id>1</id> <name>Nick</name> <type>Hard</type> <color>Black</color> </Kiln>")
+> # parsed.not_to raise_error
+----
+====
+
+
 === Attribute value validation
 
 ==== General
@@ -3608,6 +3731,8 @@ Lutaml::Model supports the following validation methods:
 
 * `collection`:: Validates collection size range.
 * `values`:: Validates the value of an attribute from a set of fixed values.
+* `choice` :: Validates that attribute specified within defined range
+* `sequence` :: Validates that elements appear in specified order in xml
 
 [example]
 ====
@@ -3621,6 +3746,17 @@ class Klin < Lutaml::Model::Serializable
   attribute :name, :string
   attribute :degree_settings, :integer, collection: (1..)
   attribute :description, :string, values: %w[one two three]
+  attribute :id, :integer
+  attribute :age, :integer
+
+  choice(min: 1, max: 1) do
+    choice(min: 1, max: 2) do
+      attribute :prefix, :string
+      attribute :forename, :string
+    end
+
+    attribute :nick_name, :string
+  end
 
   xml do
     map_element 'name', to: :name
@@ -3628,26 +3764,29 @@ class Klin < Lutaml::Model::Serializable
   end
 end
 
-klin = Klin.new(name: "Klin", degree_settings: [100, 200, 300], description: "one")
+klin = Klin.new(name: "Klin", degree_settings: [100, 200, 300], description: "one", prefix: "Ben")
 klin.validate
 # => []
 
-klin = Klin.new(name: "Klin", degree_settings: [], description: "four")
+klin = Klin.new(name: "Klin", degree_settings: [], description: "four", prefix: "Ben", nick_name: "Smith")
 klin.validate
 # => [
 #      #<Lutaml::Model::CollectionSizeError: degree_settings must have at least 1 element>,
-#      #<Lutaml::Model::ValueError: description must be one of [one, two, three]>
+#      #<Lutaml::Model::ValueError: description must be one of [one, two, three]>,
+#      #<Lutaml::Model::OutOfRangeChoiceError: Attributes must be in specified range in a choice>
 #    ]
 
 e = klin.validate!
 # => Lutaml::Model::ValidationError: [
 #      degree_settings must have at least 1 element,
-#      description must be one of [one, two, three]
+#      description must be one of [one, two, three],
+#      Attributes must be in specified range in a choice
 #    ]
 e.errors
 # => [
 #     #<Lutaml::Model::CollectionSizeError: degree_settings must have at least 1 element>,
-#     #<Lutaml::Model::ValueError: description must be one of [one, two, three]>
+#     #<Lutaml::Model::ValueError: description must be one of [one, two, three]>,
+#     #<Lutaml::Model::OutOfRangeChoiceError: Attributes must be in specified range in a choice>
 #   ]
 ----
 ====

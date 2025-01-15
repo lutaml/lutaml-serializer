@@ -16,11 +16,13 @@ module Lutaml
                   :namespace_uri,
                   :namespace_prefix,
                   :mixed_content,
-                  :ordered
+                  :ordered,
+                  :attribute_tree
 
       def initialize
         @elements = {}
         @attributes = {}
+        @attribute_tree = []
         @content_mapping = nil
         @raw_mapping = nil
         @mixed_content = false
@@ -33,6 +35,14 @@ module Lutaml
         @root_element = name
         @mixed_content = mixed
         @ordered = ordered || mixed # mixed contenet will always be ordered
+      end
+
+      def no_root(no_root: true)
+        @no_root = no_root
+      end
+
+      def no_root?
+        !!@no_root
       end
 
       def prefixed_root
@@ -169,6 +179,17 @@ module Lutaml
       end
 
       alias map_all_content map_all
+
+      def sequence(&block)
+        @attribute_tree << Sequence.new(self).tap { |s| s.instance_eval(&block) }
+      end
+
+      def import_model_mappings(model)
+        mappings = model.mappings_for(:xml)
+        @elements.merge!(mappings.instance_variable_get(:@elements))
+        @attributes.merge!(mappings.instance_variable_get(:@attributes))
+        (@attribute_tree << mappings.attribute_tree).flatten!
+      end
 
       def validate!(key, to, with, type: nil)
         validate_mappings!(type)
